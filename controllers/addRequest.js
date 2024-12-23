@@ -1,5 +1,8 @@
+const mongoose = require("mongoose")
 const User = require("../models/User")
 const AddRequest = require("../models/addRequest")
+const Chat = require("../models/chat")
+const Friend = require("../models/friend")
 
 
 module.exports.sendRequest = async (req, res) => {
@@ -10,6 +13,7 @@ module.exports.sendRequest = async (req, res) => {
     const sender = await User.findById(senderId)
     const receiver = await User.findById(receiverId)
 
+    console.log("Received request");
     
     if(!sender) {
         res.status(404).json({message:"User Not found"})
@@ -48,18 +52,99 @@ module.exports.userAllRequests = async (req,res) => {
                 path: "sendRequests",
                 populate: {
                     path: "receiver", // Populate receiver details in each request
-                    select:"username email userProfile about"
+                    select:"username email userProfile about _id"
                 },
             })
             .populate({
                 path: "receivedRequests",
                 populate: {
                     path: "sender", // Populate sender details in each request
+                    select:"username email userProfile about _id"
                 },
-                select:"username email userProfile about"
+               
             });
 
-    console.log(user);
+
 
     res.status(200).json({sendRequests:user.sendRequests, receivedRequests:user.receivedRequests})
 }
+
+
+
+module.exports.rejectRequest = async (req, res) => {
+    const userId = req.user.id;
+    const addRequestId = req.params.id;
+
+    const user = await User.findOne({_id:userId,receivedRequests: { $in: [addRequestId] } })
+
+    if(!user) {
+        return res.status(401).json({message:"You haven't received the request"});
+    }
+
+    const request = await AddRequest.findById(addRequestId)
+
+    if(request.status !== "Pending") {
+        return res.status(409).json({message:"Already Updated"})
+    }
+
+    request.status = "Rejected"
+
+    await request.save();
+
+    res.status(200).json({message:"Rejected"})
+}
+
+module.exports.acceptRequest = async (req, res) => {
+    const userId = req.user.id;
+    const addRequestId = req.params.id;
+
+    let user = await User.findOne({_id:userId,receivedRequests: { $in: [addRequestId] } })
+
+    if(!user) {
+        return res.status(401).json({message:"You haven't received the request"});
+    }
+
+    const request = await AddRequest.findById(addRequestId)
+
+    if(request.status !== "Pending") {
+        return res.status(409).json({message:"Already Updated"})
+    }
+
+    request.status = "Accepted"
+    await request.save();
+
+    const sender = await User.findById(request.sender)
+
+    const chat = await new Chat().save();
+
+    let userFriend = new Friend({
+        person: sender._id,
+        chat: chat._id
+    })
+
+    userFriend = await userFriend.save();
+
+    let senderFriend = new Friend({
+        person: user._id,
+        chat:chat._id
+    })
+
+    senderFriend = await senderFriend.save();
+    
+    user.friends.push(userFriend._id);
+    sender.friends.push(senderFriend._id)
+
+
+
+    await user.save()
+    await sender.save()
+
+
+    res.status(200).json({message:"Accepted"})
+}
+
+
+
+
+
+

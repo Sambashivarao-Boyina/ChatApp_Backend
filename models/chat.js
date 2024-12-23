@@ -7,7 +7,12 @@ const chatSchema = new Schema({
             type:Schema.Types.ObjectId,
             ref:"Message"
         }
-    ]
+    ],
+    blockedBy: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    }
 })
 
 const Chat = mongoose.model("Chat",chatSchema)

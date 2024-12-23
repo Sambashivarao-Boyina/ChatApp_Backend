@@ -17,9 +17,11 @@ const addRequestSchema = new Schema({
         type:String,
         enum:["Pending","Rejected","Accepted"],
         default:"Pending"
+    },
+    createdAt: {
+        type:Date,
+        default: Date.now()
     }
-}, {
-    timestamps:true
 })
 
 const AddRequest = mongoose.model("AddRequest",addRequestSchema)

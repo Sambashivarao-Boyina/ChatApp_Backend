@@ -3,18 +3,17 @@ const Schema = mongoose.Schema
 
 const messageSchema = new Schema({
     sender:{
-        type:{
-            type:Schema.Types.ObjectId,
-            ref:"User"
-        }
+        type:Schema.Types.ObjectId,
+        ref:"User"
     },
     message: {
         type:"String",
         required:true
     },
-    
-}, {
-    timestamps:true
+    createdAt:{
+        type:Date,
+        default: Date.now()
+    }
 })
 
 const Message = mongoose.model("Message",messageSchema)
