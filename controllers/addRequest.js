@@ -45,7 +45,33 @@ module.exports.sendRequest = async (req, res) => {
 }
 
 
-module.exports.userAllRequests = async (req,res) => {
+module.exports.getUserReceivedRequests = async (req,res) => {
+    const userId = req.user.id;
+    const user = await User.findById(userId)
+            .populate({
+                path: "receivedRequests",
+                populate: {
+                    path: "receiver", // Populate sender details in each request
+                    select:"username email userProfile about _id"
+                },
+            })
+            .populate({
+                path: "receivedRequests",
+                populate: {
+                    path: "sender", // Populate sender details in each request
+                    select:"username email userProfile about _id"
+                },
+            });
+
+    
+
+
+
+    res.status(200).json(user.receivedRequests)
+}
+
+
+module.exports.getUserSendRequests = async(req, res) => {
     const userId = req.user.id;
     const user = await User.findById(userId)
             .populate({
@@ -56,19 +82,15 @@ module.exports.userAllRequests = async (req,res) => {
                 },
             })
             .populate({
-                path: "receivedRequests",
+                path: "sendRequests",
                 populate: {
                     path: "sender", // Populate sender details in each request
                     select:"username email userProfile about _id"
                 },
-               
-            });
+            })
 
-
-
-    res.status(200).json({sendRequests:user.sendRequests, receivedRequests:user.receivedRequests})
+    res.status(200).json(user.sendRequests)
 }
-
 
 
 module.exports.rejectRequest = async (req, res) => {
@@ -83,7 +105,7 @@ module.exports.rejectRequest = async (req, res) => {
 
     const request = await AddRequest.findById(addRequestId)
 
-    if(request.status !== "Pending") {
+    if(request.status == "Accepted") {
         return res.status(409).json({message:"Already Updated"})
     }
 
@@ -98,7 +120,8 @@ module.exports.acceptRequest = async (req, res) => {
     const userId = req.user.id;
     const addRequestId = req.params.id;
 
-    let user = await User.findOne({_id:userId,receivedRequests: { $in: [addRequestId] } })
+
+    let user = await User.findOne({_id:userId,receivedRequests: { $in: [addRequestId] } }).populate("friends")
 
     if(!user) {
         return res.status(401).json({message:"You haven't received the request"});
@@ -106,9 +129,20 @@ module.exports.acceptRequest = async (req, res) => {
 
     const request = await AddRequest.findById(addRequestId)
 
+
+    const isAlreadyFriend = user.friends.some((friend) => {
+        return friend.person.equals(request.sender)
+    })
+
+
+    if(isAlreadyFriend) {
+        return res.status(409).json({message:"This Person is Already your friend"});
+    }
+
     if(request.status !== "Pending") {
         return res.status(409).json({message:"Already Updated"})
     }
+
 
     request.status = "Accepted"
     await request.save();
