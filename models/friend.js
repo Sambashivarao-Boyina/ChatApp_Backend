@@ -11,10 +11,11 @@ const friendSchema = new Schema({
         type:Schema.Types.ObjectId,
         ref:"Chat",
         required:true
-    },
-    lastSeen:{
-        type:Date,
-        default: Date.now()
+    },  
+    lastMessage:{
+        type: Schema.Types.ObjectId,
+        ref:"Message",
+        default: null
     }
 })
 

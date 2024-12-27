@@ -2,7 +2,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors")
-
+const bodyParser = require("body-parser")
 const app = express();
 
 const corsOptions = {
@@ -35,16 +35,19 @@ main()
     });
 
 // Middleware
-app.use(express.json());
+app.use(bodyParser.json())
+// app.use(express.json());
 
 // Routes
 const authRoute = require("./routes/auth");
 const userRoute = require("./routes/user");
 const requestRoute = require("./routes/addRequest");
+const friendRoute = require("./routes/friend")
 
 app.use("/api/auth", authRoute);
-app.use("/api/user",userRoute)
-app.use("/api/request", requestRoute)
+app.use("/api/user",userRoute);
+app.use("/api/request", requestRoute);
+app.use("/api/friend", friendRoute)
 
 app.get("/", (req, res) => {
     res.status(200).json({ message: "Welcome to Chat App" });
