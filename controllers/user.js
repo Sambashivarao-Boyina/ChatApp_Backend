@@ -28,30 +28,6 @@ module.exports.getAllUsers = async (req, res) => {
     res.status(200).json(newFriends)
 }
 
-module.exports.searchUser = async (req, res) => {
-    const user = await User.findById(req.user.id)
-                    .populate(path = "friends", select = "person chat _id lastSeen")
-                    .populate({
-                        path:"friends",
-                        populate:{
-                            path:"person",
-                            select:"username email userProfile about _id"
-                        },
-                    })
-
-    const userFriendsList = [];
-    for(let i = 0; i < user.friends.length ; i++) {
-        userFriendsList.push(user.friends[i].person._id)
-    }
-
-    userFriendsList.push(user._id)
-
-    const searchValue = req.params.searchValue
-
-    const newFriends = await User.find({_id:{$nin:userFriendsList} ,username: { $regex: searchValue, $options: 'i' }}, select = "_id username email about userProfile")
-    res.status(200).json(newFriends)
-}
-
 module.exports.getMyDetails = async (req,res) => {
     const id = req.user.id;
     const user = await User.findById(id, select = "_id username userProfile email about sendRequests receivedRequests friends ")
@@ -95,3 +71,10 @@ module.exports.updateUserProfile = async (req,res)=> {
 
     res.status(200).json({ message: "Profile Updated"});
 } 
+
+module.exports.getActiveUsers = async(req,res) => {
+    const socketStore = req.socketStore
+    const users = Object.keys(socketStore.getAllUsers()); 
+  
+    res.status(200).json(users);
+}   

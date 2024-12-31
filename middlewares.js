@@ -25,3 +25,16 @@ module.exports.verifyUser = async(req, res, next) => {
     }
     next()
 }
+
+
+
+module.exports.getUserIdFromToken = (token)=> {
+
+    let id;
+    jwt.verify(token, process.env.SECEAT_KEY, async(error,data) => {
+        id = data.id
+    });
+
+
+    return id;
+}

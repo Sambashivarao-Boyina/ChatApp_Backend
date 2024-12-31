@@ -27,6 +27,30 @@ module.exports.getAllFriends = async (req, res) => {
     res.status(200).json(user.friends);
 }
 
+module.exports.searchFriend = async(req, res) => {
+    const searhValue = req.params.searchValue
+    const user = await User.findById(req.user.id)
+            .populate(path = "friends", select = "person chat _id lastSeen")
+            .populate({
+                path:"friends",
+                populate:{
+                    path:"person",
+                    select:"username email userProfile about _id"
+                },
+            })
+            .populate({
+                path:"friends",
+                populate:{
+                    path:"lastMessage"
+                }
+            })
+
+ 
+    
+
+    res.status(200).json(user.friends);
+}
+
 
 module.exports.getFriend = async(req, res) => {
     const user = await User.findById(req.user.id)
@@ -60,6 +84,7 @@ module.exports.getChat = async(req, res) => {
     }
 
     const chat = await Chat.findById(chatId)
+                .populate("blockedBy")
                 .populate("messages")
   
 
@@ -67,11 +92,10 @@ module.exports.getChat = async(req, res) => {
 }
 
 
-
-
 module.exports.sendMessage = async(req, res) => {
     const user = await User.findById(req.user.id)
     const friendId = req.params.id;
+    const io = req.io;
 
     if(user.friends.indexOf(friendId) == -1) {
         return res.status(400).json({message:"Friend Not found"})
@@ -91,26 +115,92 @@ module.exports.sendMessage = async(req, res) => {
                             path:"messages"
                         }
                     })
+            
 
-    const chat = await Chat.findById(friend.chat._id)
+    let chat = await Chat.findById(friend.chat._id)
+
+    if(chat.blockedBy !== null) {
+        return res.status(404).json({message:"Chat has been blocked you cannot send message"})
+    }
+
     chat.messages.push(savedMessage._id)
     await chat.save();
 
     friend.lastMessage = savedMessage.id
     await friend.save();
 
-    friend = await Friend.findById(friendId)
-                    .populate("lastMessage")
-                    .populate("person", select = "_id username userProfile email about")
-                    .populate("chat")
-                    .populate({
-                        path:"chat",
-                        populate:{
-                            path:"messages"
-                        }
-                    })
+    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id);
+    
+    io.to(receiverScoketID).emit("message_received","message");
 
-    res.status(200).json(friend)
+    chat = await Chat.findById(friend.chat._id)
+                .populate("blockedBy")
+                .populate("messages");
+
+    res.status(200).json(chat)
+}
+
+module.exports.blockUser = async (req, res) => {
+    const friend = await Friend.findById(req.params.id)
+                                .populate("person")
+
+    const io = req.io;
+
+
+    let chat = await Chat.findById(friend.chat);
+
+    
+
+    if(chat.blockedBy != null) {
+        return res.status(400).json({message:"User has already blocked"})
+    }
+
+    chat.blockedBy = req.user.id
+
+    await chat.save()
+
+    chat = await Chat.findById(friend.chat._id)
+                .populate("blockedBy")
+                .populate("messages");
+
+    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id)
+    io.to(receiverScoketID).emit("chat_updated", "chat has been blocked")
+
+    res.status(200).json(chat)
 }
 
 
+module.exports.unblockUser = async(req, res) => {
+    const friend = await Friend.findById(req.params.id)
+                                        .populate("person");
+
+    const io = req.io;
+
+    let chat = await Chat.findById(friend.chat)
+    .populate("blockedBy");
+
+
+    
+
+    if(chat.blockedBy == null) {
+        return res.status(400).json({message:"User has not blocked"})
+    }
+
+    if(chat.blockedBy._id != req.user.id) {
+        return res.status(404).json({message:"you cannot unblock the user"});
+    }
+
+    chat.blockedBy = null
+
+    await chat.save()
+
+    chat = await Chat.findById(friend.chat._id)
+                .populate("blockedBy")
+                .populate("messages");
+
+    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id)
+    io.to(receiverScoketID).emit("chat_updated", "chat has been unblocked")
+
+
+    res.status(200).json(chat)
+}

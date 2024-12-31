@@ -1,13 +1,14 @@
 const express = require("express")
 const { verifyUser } = require("../middlewares")
 const wrapAsync = require("../utils/wrapAsync")
-const { getAllUsers, getUserById, getMyDetails, updateUserAbout, searchUser, updateUserProfile } = require("../controllers/user")
+const { getAllUsers, getUserById, getMyDetails, updateUserAbout, searchUser, updateUserProfile, getActiveUsers } = require("../controllers/user")
 const router = express.Router()
 
 const cloudinary =  require("cloudinary").v2
 const multer = require("multer")
 const {CloudinaryStorage} = require("multer-storage-cloudinary")
 const User = require("../models/User")
+
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -28,6 +29,7 @@ router.get("/", verifyUser, wrapAsync(getAllUsers))
 router.patch("/updateProfile",verifyUser,upload.single("file"),wrapAsync(updateUserProfile))
 router.get("/search/:searchValue", verifyUser, wrapAsync(searchUser))
 router.get("/details",verifyUser, wrapAsync(getMyDetails))
+router.get("/activeUsers",verifyUser, wrapAsync(getActiveUsers))
 
 router.get("/:id", verifyUser,wrapAsync(getUserById))
 router.patch("/about",verifyUser, wrapAsync(updateUserAbout))
