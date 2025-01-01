@@ -6,9 +6,14 @@ const messageSchema = new Schema({
         type:Schema.Types.ObjectId,
         ref:"User"
     },
+    imageUrl: {
+        type:String,
+        default:null
+    },
     message: {
         type:"String",
-        required:true
+        required:true,
+        default:""
     },
     createdAt:{
         type:Date,

@@ -204,3 +204,58 @@ module.exports.unblockUser = async(req, res) => {
 
     res.status(200).json(chat)
 }
+
+module.exports.sendImage = async(req, res) => {
+    if(!req.file) {
+        return res.status(400).json({ message: "Image is Not uploaded" });
+    }
+
+    
+
+    const user = await User.findById(req.user.id)
+    const friendId = req.params.id;
+    const io = req.io;
+
+    if(user.friends.indexOf(friendId) == -1) {
+        return res.status(400).json({message:"Friend Not found"})
+    }
+
+
+    const newMessage = await Message({sender:user._id, message:" ", imageUrl : req.file.path});
+    const savedMessage = await newMessage.save();
+
+    let friend = await Friend.findById(friendId)
+                    .populate("person", select = "_id username userProfile email about")
+                    .populate("chat")
+                    .populate({
+                        path:"chat",
+                        populate:{
+                            path:"messages"
+                        }
+                    })
+            
+
+    let chat = await Chat.findById(friend.chat._id)
+
+    if(chat.blockedBy !== null) {
+        return res.status(404).json({message:"Chat has been blocked you cannot send message"})
+    }
+
+    chat.messages.push(savedMessage._id)
+    await chat.save();
+
+    friend.lastMessage = savedMessage.id
+    await friend.save();
+
+    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id);
+    
+    io.to(receiverScoketID).emit("message_received","message");
+
+    chat = await Chat.findById(friend.chat._id)
+                .populate("blockedBy")
+                .populate("messages");
+    
+
+    res.status(200).json(chat)
+    
+}
