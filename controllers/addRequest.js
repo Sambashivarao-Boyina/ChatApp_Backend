@@ -12,8 +12,6 @@ module.exports.sendRequest = async (req, res) => {
 
     const sender = await User.findById(senderId)
     const receiver = await User.findById(receiverId)
-
-    console.log("Received request");
     
     if(!sender) {
         res.status(404).json({message:"User Not found"})

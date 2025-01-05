@@ -4,6 +4,15 @@ const Message = require("../models/message");
 const User = require("../models/User");
 const Chat = require("../models/chat");
 
+const admin = require("firebase-admin");
+
+const serviceAccount = require("../serviceAccountKey.json");
+const {getMessaging} = require("firebase-admin/messaging")
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
+
 module.exports.getAllFriends = async (req, res) => {
     const user = await User.findById(req.user.id)
             .populate(path = "friends", select = "person chat _id lastSeen")
@@ -107,7 +116,7 @@ module.exports.sendMessage = async(req, res) => {
     const savedMessage = await newMessage.save();
 
     let friend = await Friend.findById(friendId)
-                    .populate("person", select = "_id username userProfile email about")
+                    .populate("person", select = "_id username userProfile email about fcmToken")
                     .populate("chat")
                     .populate({
                         path:"chat",
@@ -116,6 +125,7 @@ module.exports.sendMessage = async(req, res) => {
                         }
                     })
             
+        
 
     let chat = await Chat.findById(friend.chat._id)
 
@@ -137,10 +147,25 @@ module.exports.sendMessage = async(req, res) => {
                 .populate("blockedBy")
                 .populate("messages");
 
+    
+    if(friend.person.fcmToken != null) {
+        
+        
+        sendNotification(
+            token = friend.person.fcmToken,
+            title = user.username,
+            body = message
+        )
+        
+    }
+
+
     res.status(200).json(chat)
 }
 
+
 module.exports.blockUser = async (req, res) => {
+    const user = await User.findById(req.user.id);
     const friend = await Friend.findById(req.params.id)
                                 .populate("person")
 
@@ -159,9 +184,14 @@ module.exports.blockUser = async (req, res) => {
 
     await chat.save()
 
-    chat = await Chat.findById(friend.chat._id)
-                .populate("blockedBy")
-                .populate("messages");
+    if(friend.person.fcmToken != null) {
+        sendNotification(
+            token = friend.person.fcmToken,
+            title = user.username,
+            body = `${user.username} has Blocked you, now you cannot send message to him`
+        )
+     }
+    
 
     const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id)
     io.to(receiverScoketID).emit("chat_updated", "chat has been blocked")
@@ -174,6 +204,7 @@ module.exports.unblockUser = async(req, res) => {
     const friend = await Friend.findById(req.params.id)
                                         .populate("person");
 
+    const user = await User.findById(req.user.id);
     const io = req.io;
 
     let chat = await Chat.findById(friend.chat)
@@ -201,6 +232,13 @@ module.exports.unblockUser = async(req, res) => {
     const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id)
     io.to(receiverScoketID).emit("chat_updated", "chat has been unblocked")
 
+    if(friend.person.fcmToken != null) {
+        sendNotification(
+            token = friend.person.fcmToken,
+            title = user.username,
+            body = `${user.username} has unBlocked you , now you can send message to him`
+        )
+     }
 
     res.status(200).json(chat)
 }
@@ -251,6 +289,14 @@ module.exports.sendImage = async(req, res) => {
     
     io.to(receiverScoketID).emit("message_received","message");
 
+    if(friend.person.fcmToken != null) {
+        sendNotification(
+            token = friend.person.fcmToken,
+            title = user.username,
+            body = `${user.username} has send a Picture`
+        )
+     }
+
     chat = await Chat.findById(friend.chat._id)
                 .populate("blockedBy")
                 .populate("messages");
@@ -259,3 +305,19 @@ module.exports.sendImage = async(req, res) => {
     res.status(200).json(chat)
     
 }
+
+function sendNotification(token, title, body){
+ 
+    
+    const message = {
+        notification: {
+        title: title,
+        body: body
+        },
+        token: token // Token you received from Firebase Messaging
+    };
+
+     
+    admin.messaging().send(message)
+  
+};

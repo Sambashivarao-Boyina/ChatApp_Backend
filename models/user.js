@@ -40,7 +40,11 @@ const userSchema = new Schema({
             type:Schema.Types.ObjectId,
             ref:"Friend"
         }
-    ]
+    ],
+    fcmToken:{
+        type: String,
+        default:null
+    }
 })
 
 const User = mongoose.model("User",userSchema)

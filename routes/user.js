@@ -1,7 +1,7 @@
 const express = require("express")
 const { verifyUser } = require("../middlewares")
 const wrapAsync = require("../utils/wrapAsync")
-const { getAllUsers, getUserById, getMyDetails, updateUserAbout, searchUser, updateUserProfile, getActiveUsers } = require("../controllers/user")
+const { getAllUsers, getUserById, getMyDetails, updateUserAbout, searchUser, updateUserProfile, getActiveUsers, saveFcmToken, updateUsername, updatePassword } = require("../controllers/user")
 const router = express.Router()
 
 const cloudinary =  require("cloudinary").v2
@@ -31,8 +31,12 @@ router.get("/search/:searchValue", verifyUser, wrapAsync(searchUser))
 router.get("/details",verifyUser, wrapAsync(getMyDetails))
 router.get("/activeUsers",verifyUser, wrapAsync(getActiveUsers))
 
-router.get("/:id", verifyUser,wrapAsync(getUserById))
-router.patch("/about",verifyUser, wrapAsync(updateUserAbout))
+router.get("/:id", verifyUser, wrapAsync(getUserById))
+router.patch("/about", verifyUser, wrapAsync(updateUserAbout))
+router.patch("/username",verifyUser, wrapAsync(updateUsername))
+router.patch("/password", verifyUser, wrapAsync(updatePassword))
+router.patch("/fcmToken", verifyUser, wrapAsync(saveFcmToken))
+
 
 
 module.exports = router

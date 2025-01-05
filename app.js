@@ -96,6 +96,7 @@ app.get("/", (req, res) => {
 
 app.use((err, req, res, next) => {
     const { status = 500, message = "Server Error" } = err;
+    console.log(err);
     res.status(status).json({ message });
 });
 

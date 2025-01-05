@@ -1,6 +1,6 @@
 const Friend = require("../models/friend");
 const User = require("../models/User")
-const { route } = require("../routes/addRequest")
+const bcrypt = require("bcryptjs")
 
 
 
@@ -78,3 +78,62 @@ module.exports.getActiveUsers = async(req,res) => {
   
     res.status(200).json(users);
 }   
+
+module.exports.saveFcmToken = async(req, res) => {
+    const fcmToken = req.body.data;
+    
+
+    const user = await User.findById(req.user.id);
+    if(user == null) {
+        return res.status(400).json({message:"user not login"})
+    }
+
+    user.fcmToken = fcmToken
+    await user.save()
+
+
+
+    res.status(200).json({message:"message received"});
+}
+
+module.exports.updateUsername = async(req,res)=>{
+    const username = req.body.data;
+
+    const user = await User.findById(req.user.id);
+
+    const userNameAlreadyExist = await User.findOne({username: username});
+
+
+    if(userNameAlreadyExist) {
+        return res.status(404).json({message:"User Name alredy exist, Try another"});
+    } else if(username.length < 5) {
+        return res.status(404).json({message:"Username should contain atleast 6 characters"})
+    }
+
+    user.username = username
+    await user.save()
+
+
+    res.status(200).json({ message: "UserName Updated"});
+}
+
+module.exports.updatePassword = async(req, res) => {
+    const password = req.body.data
+
+    if(password.trim().length <= 8) {
+        return res.status(202).json({message:"Password length is too small"})
+    } 
+    
+    const user = await User.findById(req.user.id);
+
+    const salt=await bcrypt.genSalt(10);
+    const hashedPassword=await bcrypt.hash(password,salt);
+
+    user.password = hashedPassword
+
+    await user.save();
+
+
+    res.status(200).json({message:"password updated successfully"});
+    
+}
