@@ -10,8 +10,9 @@ const serviceAccount = require("../serviceAccountKey.json");
 const {getMessaging} = require("firebase-admin/messaging")
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+    credential: admin.credential.cert(serviceAccount),
 });
+
 
 module.exports.getAllFriends = async (req, res) => {
     const user = await User.findById(req.user.id)
@@ -139,7 +140,7 @@ module.exports.sendMessage = async(req, res) => {
     friend.lastMessage = savedMessage.id
     await friend.save();
 
-    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id);
+    const receiverScoketID = await req.socketStore.getSocketOfUser(friend.person._id);
     
     io.to(receiverScoketID).emit("message_received","message");
 
@@ -193,8 +194,12 @@ module.exports.blockUser = async (req, res) => {
      }
     
 
-    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id)
+    const receiverScoketID = await req.socketStore.getSocketOfUser(friend.person._id)
     io.to(receiverScoketID).emit("chat_updated", "chat has been blocked")
+
+    chat = await Chat.findById(friend.chat)
+                .populate("blockedBy")
+                .populate("messages")
 
     res.status(200).json(chat)
 }
@@ -229,7 +234,7 @@ module.exports.unblockUser = async(req, res) => {
                 .populate("blockedBy")
                 .populate("messages");
 
-    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id)
+    const receiverScoketID = await req.socketStore.getSocketOfUser(friend.person._id)
     io.to(receiverScoketID).emit("chat_updated", "chat has been unblocked")
 
     if(friend.person.fcmToken != null) {
@@ -285,7 +290,7 @@ module.exports.sendImage = async(req, res) => {
     friend.lastMessage = savedMessage.id
     await friend.save();
 
-    const receiverScoketID = req.socketStore.getSocketOfUser(friend.person._id);
+    const receiverScoketID = await req.socketStore.getSocketOfUser(friend.person._id);
     
     io.to(receiverScoketID).emit("message_received","message");
 
