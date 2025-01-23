@@ -1,7 +1,7 @@
 const { request } = require("express");
 const Friend = require("../models/friend");
 const Message = require("../models/message");
-const User = require("../models/User");
+const User = require("../models/user");
 const Chat = require("../models/chat");
 
 const admin = require("firebase-admin");

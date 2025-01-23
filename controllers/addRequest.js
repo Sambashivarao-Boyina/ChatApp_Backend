@@ -1,5 +1,5 @@
 const mongoose = require("mongoose")
-const User = require("../models/User")
+const User = require("../models/user")
 const AddRequest = require("../models/addRequest")
 const Chat = require("../models/chat")
 const Friend = require("../models/friend")
