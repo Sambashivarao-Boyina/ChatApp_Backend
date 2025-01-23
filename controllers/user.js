@@ -96,6 +96,18 @@ module.exports.saveFcmToken = async(req, res) => {
     res.status(200).json({message:"message received"});
 }
 
+module.exports.deleteFcmToken = async(req,res)=> {
+    const user = await User.findById(req.user.id);
+     if(user == null) {
+        return res.status(400).json({message:"user not login"})
+    }
+
+    user.fcmToken = null;
+    await user.save();
+
+    res.status(200).json({message:"token deleted"});
+}
+
 module.exports.updateUsername = async(req,res)=>{
     const username = req.body.data;
 
