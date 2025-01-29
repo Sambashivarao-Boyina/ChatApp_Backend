@@ -27,7 +27,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 const PORT = process.env.PORT || 3000;
-const DATABASE_URL = process.env.MONGO_DB_ALTAS_URL;
+const DATABASE_URL = process.env.DATABASE_URL;
 
 // Database connection
 async function main() {

@@ -19,5 +19,7 @@ const friendSchema = new Schema({
     }
 })
 
+
+
 const Friend = mongoose.model("Friend",friendSchema)
 module.exports = Friend

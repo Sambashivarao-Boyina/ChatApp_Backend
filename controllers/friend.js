@@ -125,9 +125,12 @@ module.exports.sendMessage = async(req, res) => {
                             path:"messages"
                         }
                     })
+    
+    
+    
             
         
-
+                
     let chat = await Chat.findById(friend.chat._id)
 
     if(chat.blockedBy !== null) {
@@ -137,8 +140,8 @@ module.exports.sendMessage = async(req, res) => {
     chat.messages.push(savedMessage._id)
     await chat.save();
 
-    friend.lastMessage = savedMessage.id
-    await friend.save();
+
+    
 
     const receiverScoketID = await req.socketStore.getSocketOfUser(friend.person._id);
     
